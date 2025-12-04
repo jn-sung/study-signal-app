@@ -1,0 +1,7 @@
+{
+  "name": "Study Signal",
+  "description": "이 앱은 은둔형 외톨이 및 쉬었음 세대에게 '연결의 힘'을 통해 적극성과 공부 의지를 불어넣기 위해 기획된 감성 스터디 로그 플랫폼입니다.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
