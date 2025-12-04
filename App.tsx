@@ -48,7 +48,11 @@ function App() {
   }, []);
 
   const handleSaveApiKey = (key: string) => {
-    localStorage.setItem('gemini_api_key', key);
+    try {
+        localStorage.setItem('gemini_api_key', key);
+    } catch (e) {
+        console.error("Failed to save to local storage", e);
+    }
     setApiKey(key);
     setShowKeyModal(false);
   };
@@ -66,6 +70,7 @@ function App() {
 
   const selectedNotebook = notebooks.find(n => n.id === selectedNotebookId);
 
+  // CRITICAL: Always render the main UI structure. Do NOT return null or loading spinners here.
   return (
     <div className="min-h-screen bg-[#e2e8f0] p-4 md:p-8 font-sans flex items-center justify-center">
       {/* Main Container (Container 1) */}
