@@ -19,33 +19,26 @@ import { NoteDetailView } from './components/NoteDetailView';
 import { ApiKeyModal } from './components/ApiKeyModal';
 
 function App() {
+  console.log("App is rendering..."); // Debug log to confirm rendering
+
+  // 1. Initialize API Key State safely (Lazy initialization)
+  const [apiKey, setApiKey] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('gemini_api_key');
+    } catch (e) {
+      console.error("Local storage access failed:", e);
+      return null;
+    }
+  });
+
+  // State for manually opening the settings modal
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
   const [activeModal, setActiveModal] = useState<ModalType>('NONE');
   const [activeTab, setActiveTab] = useState<'MY' | 'SHARED'>('MY');
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [notebooks, setNotebooks] = useState<Notebook[]>(INITIAL_NOTEBOOKS);
   const [stamps] = useState(INITIAL_STAMPS);
-  
-  // API Key State
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [showKeyModal, setShowKeyModal] = useState(false);
-
-  useEffect(() => {
-    // Check for API key in localStorage after component mounts
-    // This allows the UI to render first (background), then the modal pops up if needed
-    try {
-      const storedKey = localStorage.getItem('gemini_api_key');
-      if (storedKey) {
-        setApiKey(storedKey);
-      } else {
-        // No key found, show the modal overlay immediately
-        setShowKeyModal(true);
-      }
-    } catch (e) {
-      console.error("Failed to access local storage:", e);
-      // Even if storage fails, we show the modal to let user try entering it (or handle it in memory)
-      setShowKeyModal(true);
-    }
-  }, []);
 
   const handleSaveApiKey = (key: string) => {
     try {
@@ -54,11 +47,10 @@ function App() {
         console.error("Failed to save to local storage", e);
     }
     setApiKey(key);
-    setShowKeyModal(false);
+    setShowSettingsModal(false);
   };
 
   const handleCreateNotebook = () => {
-    // Simple mock creation
     const newNote: Notebook = {
       id: Date.now().toString(),
       title: '새로운 과목',
@@ -70,10 +62,10 @@ function App() {
 
   const selectedNotebook = notebooks.find(n => n.id === selectedNotebookId);
 
-  // CRITICAL: Always render the main UI structure. Do NOT return null or loading spinners here.
+  // 2. Unconditional Render: Structure ensures Main UI is always visible behind modals
   return (
-    <div className="min-h-screen bg-[#e2e8f0] p-4 md:p-8 font-sans flex items-center justify-center">
-      {/* Main Container (Container 1) */}
+    <div className="min-h-screen bg-[#e2e8f0] p-4 md:p-8 font-sans flex items-center justify-center relative">
+      {/* Main Container */}
       <div className="w-full max-w-6xl h-[85vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-gray-300 relative transition-all duration-500">
         
         {selectedNotebookId && selectedNotebook ? (
@@ -83,7 +75,7 @@ function App() {
           />
         ) : (
           <>
-            {/* Sidebar (Container 2) */}
+            {/* Sidebar */}
             <aside className="w-full md:w-64 bg-slate-50 border-r border-gray-200 flex flex-col p-6 z-10">
               <div className="mb-10">
                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -128,7 +120,7 @@ function App() {
                  </div>
                  
                  <button 
-                   onClick={() => setShowKeyModal(true)}
+                   onClick={() => setShowSettingsModal(true)}
                    className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2 rounded-lg hover:bg-gray-100"
                  >
                    <Settings size={14} />
@@ -137,7 +129,7 @@ function App() {
               </div>
             </aside>
 
-            {/* Main Content (Container 3) */}
+            {/* Main Content */}
             <main className="flex-1 bg-white relative flex flex-col overflow-hidden">
               
               {/* Top Bar with Stamp Board */}
@@ -186,7 +178,7 @@ function App() {
                 )}
               </div>
 
-              {/* Floating Actions (Bottom) */}
+              {/* Floating Actions */}
               <div className="absolute bottom-6 left-6 z-20">
                  <button 
                    onClick={() => setActiveModal('MAP')}
@@ -198,9 +190,6 @@ function App() {
                      N
                    </span>
                  </button>
-                 <span className="absolute left-16 top-4 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                   함께하는 친구들 보기
-                 </span>
               </div>
 
               <div className="absolute bottom-6 right-6 z-20">
@@ -218,7 +207,7 @@ function App() {
         )}
       </div>
 
-      {/* Modals */}
+      {/* Feature Modals */}
       <LightMapModal 
         isOpen={activeModal === 'MAP'} 
         onClose={() => setActiveModal('NONE')} 
@@ -230,12 +219,15 @@ function App() {
         onClose={() => setActiveModal('NONE')} 
       />
 
-      <ApiKeyModal 
-        isOpen={showKeyModal} 
-        onSave={handleSaveApiKey} 
-        onClose={() => apiKey && setShowKeyModal(false)}
-        existingKey={apiKey}
-      />
+      {/* API Key Modal: Overlay when key is missing OR settings requested */}
+      {(!apiKey || showSettingsModal) && (
+        <ApiKeyModal 
+          isOpen={true} 
+          onSave={handleSaveApiKey} 
+          onClose={() => setShowSettingsModal(false)}
+          existingKey={apiKey}
+        />
+      )}
     </div>
   );
 }
