@@ -19,38 +19,34 @@ import { NoteDetailView } from './components/NoteDetailView';
 import { ApiKeyModal } from './components/ApiKeyModal';
 
 function App() {
-  console.log("App is rendering..."); // Debug log to confirm rendering
-
-  // 1. Initialize API Key State safely (Lazy initialization)
-  const [apiKey, setApiKey] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem('gemini_api_key');
-    } catch (e) {
-      console.error("Local storage access failed:", e);
-      return null;
-    }
-  });
-
-  // State for manually opening the settings modal
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-
   const [activeModal, setActiveModal] = useState<ModalType>('NONE');
   const [activeTab, setActiveTab] = useState<'MY' | 'SHARED'>('MY');
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [notebooks, setNotebooks] = useState<Notebook[]>(INITIAL_NOTEBOOKS);
   const [stamps] = useState(INITIAL_STAMPS);
+  
+  // API Key State
+  const [apiKey, setApiKey] = useState<string>('');
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+
+  useEffect(() => {
+    console.log("App is rendering...");
+    const storedKey = localStorage.getItem('GEMINI_API_KEY');
+    if (storedKey) {
+      setApiKey(storedKey);
+    } else {
+      setShowApiKeyModal(true);
+    }
+  }, []);
 
   const handleSaveApiKey = (key: string) => {
-    try {
-        localStorage.setItem('gemini_api_key', key);
-    } catch (e) {
-        console.error("Failed to save to local storage", e);
-    }
+    localStorage.setItem('GEMINI_API_KEY', key);
     setApiKey(key);
-    setShowSettingsModal(false);
+    setShowApiKeyModal(false);
   };
 
   const handleCreateNotebook = () => {
+    // Simple mock creation
     const newNote: Notebook = {
       id: Date.now().toString(),
       title: '새로운 과목',
@@ -62,10 +58,9 @@ function App() {
 
   const selectedNotebook = notebooks.find(n => n.id === selectedNotebookId);
 
-  // 2. Unconditional Render: Structure ensures Main UI is always visible behind modals
   return (
-    <div className="min-h-screen bg-[#e2e8f0] p-4 md:p-8 font-sans flex items-center justify-center relative">
-      {/* Main Container */}
+    <div className="min-h-screen bg-[#e2e8f0] p-4 md:p-8 font-sans flex items-center justify-center">
+      {/* Main Container (Container 1) */}
       <div className="w-full max-w-6xl h-[85vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-gray-300 relative transition-all duration-500">
         
         {selectedNotebookId && selectedNotebook ? (
@@ -75,14 +70,23 @@ function App() {
           />
         ) : (
           <>
-            {/* Sidebar */}
+            {/* Sidebar (Container 2) */}
             <aside className="w-full md:w-64 bg-slate-50 border-r border-gray-200 flex flex-col p-6 z-10">
-              <div className="mb-10">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <BookOpen className="text-primary" />
-                  Study Signal
-                </h1>
-                <p className="text-xs text-gray-500 mt-2">오늘도 당신의 불빛을 밝혀주세요.</p>
+              <div className="mb-10 flex justify-between items-start">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <BookOpen className="text-primary" />
+                    Study Signal
+                  </h1>
+                  <p className="text-xs text-gray-500 mt-2">오늘도 당신의 불빛을 밝혀주세요.</p>
+                </div>
+                <button 
+                  onClick={() => setShowApiKeyModal(true)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                  title="API 키 설정"
+                >
+                  <Settings size={18} />
+                </button>
               </div>
 
               <nav className="flex-1 space-y-4">
@@ -112,24 +116,16 @@ function App() {
               </nav>
 
               <div className="mt-auto pt-6 border-t border-gray-200">
-                 <div className="bg-blue-50 p-4 rounded-xl mb-4">
+                 <div className="bg-blue-50 p-4 rounded-xl">
                    <p className="text-xs font-medium text-blue-800 mb-1">오늘의 명언</p>
                    <p className="text-xs text-blue-600 leading-relaxed">
                      "가장 어두운 밤에, 가장 밝은 별이 뜹니다."
                    </p>
                  </div>
-                 
-                 <button 
-                   onClick={() => setShowSettingsModal(true)}
-                   className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2 rounded-lg hover:bg-gray-100"
-                 >
-                   <Settings size={14} />
-                   <span>API 키 설정</span>
-                 </button>
               </div>
             </aside>
 
-            {/* Main Content */}
+            {/* Main Content (Container 3) */}
             <main className="flex-1 bg-white relative flex flex-col overflow-hidden">
               
               {/* Top Bar with Stamp Board */}
@@ -178,7 +174,7 @@ function App() {
                 )}
               </div>
 
-              {/* Floating Actions */}
+              {/* Floating Actions (Bottom) */}
               <div className="absolute bottom-6 left-6 z-20">
                  <button 
                    onClick={() => setActiveModal('MAP')}
@@ -190,6 +186,9 @@ function App() {
                      N
                    </span>
                  </button>
+                 <span className="absolute left-16 top-4 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                   함께하는 친구들 보기
+                 </span>
               </div>
 
               <div className="absolute bottom-6 right-6 z-20">
@@ -207,11 +206,10 @@ function App() {
         )}
       </div>
 
-      {/* Feature Modals */}
+      {/* Modals */}
       <LightMapModal 
         isOpen={activeModal === 'MAP'} 
         onClose={() => setActiveModal('NONE')} 
-        apiKey={apiKey}
       />
       
       <SoundPlayerModal 
@@ -219,15 +217,12 @@ function App() {
         onClose={() => setActiveModal('NONE')} 
       />
 
-      {/* API Key Modal: Overlay when key is missing OR settings requested */}
-      {(!apiKey || showSettingsModal) && (
-        <ApiKeyModal 
-          isOpen={true} 
-          onSave={handleSaveApiKey} 
-          onClose={() => setShowSettingsModal(false)}
-          existingKey={apiKey}
-        />
-      )}
+      <ApiKeyModal
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+        onSave={handleSaveApiKey}
+        initialKey={apiKey}
+      />
     </div>
   );
 }
