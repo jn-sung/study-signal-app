@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Share2, 
@@ -6,7 +6,8 @@ import {
   Disc, 
   Plus,
   BookOpen,
-  FolderOpen
+  FolderOpen,
+  Settings
 } from 'lucide-react';
 import { INITIAL_NOTEBOOKS, INITIAL_STAMPS } from './constants';
 import { ModalType, Notebook } from './types';
@@ -15,6 +16,7 @@ import { StampBoard } from './components/StampBoard';
 import { LightMapModal } from './components/LightMapModal';
 import { SoundPlayerModal } from './components/SoundPlayerModal';
 import { NoteDetailView } from './components/NoteDetailView';
+import { ApiKeyModal } from './components/ApiKeyModal';
 
 function App() {
   const [activeModal, setActiveModal] = useState<ModalType>('NONE');
@@ -22,6 +24,25 @@ function App() {
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [notebooks, setNotebooks] = useState<Notebook[]>(INITIAL_NOTEBOOKS);
   const [stamps] = useState(INITIAL_STAMPS);
+  
+  // API Key State
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+
+  useEffect(() => {
+    const storedKey = localStorage.getItem('gemini_api_key');
+    if (storedKey) {
+      setApiKey(storedKey);
+    } else {
+      setShowKeyModal(true);
+    }
+  }, []);
+
+  const handleSaveApiKey = (key: string) => {
+    localStorage.setItem('gemini_api_key', key);
+    setApiKey(key);
+    setShowKeyModal(false);
+  };
 
   const handleCreateNotebook = () => {
     // Simple mock creation
@@ -85,12 +106,20 @@ function App() {
               </nav>
 
               <div className="mt-auto pt-6 border-t border-gray-200">
-                 <div className="bg-blue-50 p-4 rounded-xl">
+                 <div className="bg-blue-50 p-4 rounded-xl mb-4">
                    <p className="text-xs font-medium text-blue-800 mb-1">오늘의 명언</p>
                    <p className="text-xs text-blue-600 leading-relaxed">
                      "가장 어두운 밤에, 가장 밝은 별이 뜹니다."
                    </p>
                  </div>
+                 
+                 <button 
+                   onClick={() => setShowKeyModal(true)}
+                   className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors py-2 rounded-lg hover:bg-gray-100"
+                 >
+                   <Settings size={14} />
+                   <span>API 키 설정</span>
+                 </button>
               </div>
             </aside>
 
@@ -184,6 +213,13 @@ function App() {
       <SoundPlayerModal 
         isOpen={activeModal === 'SOUND'} 
         onClose={() => setActiveModal('NONE')} 
+      />
+
+      <ApiKeyModal 
+        isOpen={showKeyModal} 
+        onSave={handleSaveApiKey} 
+        onClose={() => apiKey && setShowKeyModal(false)}
+        existingKey={apiKey}
       />
     </div>
   );
