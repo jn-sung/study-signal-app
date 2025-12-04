@@ -19,7 +19,6 @@ import { NoteDetailView } from './components/NoteDetailView';
 import { ApiKeyModal } from './components/ApiKeyModal';
 
 function App() {
-  const [isInitialized, setIsInitialized] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>('NONE');
   const [activeTab, setActiveTab] = useState<'MY' | 'SHARED'>('MY');
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
@@ -31,25 +30,21 @@ function App() {
   const [showKeyModal, setShowKeyModal] = useState(false);
 
   useEffect(() => {
-    // Safety check: Ensure app doesn't crash if localStorage fails
-    const initializeApp = async () => {
-      try {
-        const storedKey = localStorage.getItem('gemini_api_key');
-        if (storedKey) {
-          setApiKey(storedKey);
-        } else {
-          setShowKeyModal(true);
-        }
-      } catch (e) {
-        console.error("Failed to access local storage or initialize:", e);
-        // Fallback: Show modal to ask for key if something went wrong
+    // Check for API key in localStorage after component mounts
+    // This allows the UI to render first (background), then the modal pops up if needed
+    try {
+      const storedKey = localStorage.getItem('gemini_api_key');
+      if (storedKey) {
+        setApiKey(storedKey);
+      } else {
+        // No key found, show the modal overlay immediately
         setShowKeyModal(true);
-      } finally {
-        setIsInitialized(true);
       }
-    };
-
-    initializeApp();
+    } catch (e) {
+      console.error("Failed to access local storage:", e);
+      // Even if storage fails, we show the modal to let user try entering it (or handle it in memory)
+      setShowKeyModal(true);
+    }
   }, []);
 
   const handleSaveApiKey = (key: string) => {
@@ -68,18 +63,6 @@ function App() {
     };
     setNotebooks([...notebooks, newNote]);
   };
-
-  // Prevent rendering complex children until initialization is done
-  if (!isInitialized) {
-    return (
-      <div className="min-h-screen bg-[#e2e8f0] flex items-center justify-center">
-         <div className="animate-pulse flex flex-col items-center gap-4">
-            <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
-            <div className="text-gray-400 font-medium">Study Signal 로딩 중...</div>
-         </div>
-      </div>
-    );
-  }
 
   const selectedNotebook = notebooks.find(n => n.id === selectedNotebookId);
 
